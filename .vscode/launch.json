@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run realself breast augmentation",
+            "type": "python",
+            "request": "launch",
+            "module": "scrapy",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/realself",
+            "args": [
+                "crawl",
+                "breast",
+                "--loglevel",
+                "DEBUG"
+            ]
+        }
+    ]
+}

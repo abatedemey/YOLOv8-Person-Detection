@@ -1,5 +1,7 @@
 ultralytics
 git+https://github.com/facebookresearch/segment-anything.git
+rembg==2.0.52
+dis-inference==1.1.1
 
 # Specifically for cuda 11.8 build 
 # CHange this if using a different version of CUDA

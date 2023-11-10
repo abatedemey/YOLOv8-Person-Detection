@@ -4,7 +4,6 @@ import os
 from src.detection import PersonDetector
 from src.visualize import ImageSegmentVisualizer
 
-
 INPUT_DIR = "images/raw"
 OUTPUT_DIR = "images/labeled"
 
@@ -59,12 +58,20 @@ class Main:
         extracted_image_path = os.path.join(
             output_image_dir, f"{filename_no_ext}.extracted.{filename_ext}"
         )
+        rembg_image_path = os.path.join(
+            output_image_dir, f"{filename_no_ext}.rembg{filename_ext}"
+        )
+        dis_image_path = os.path.join(
+            output_image_dir, f"{filename_no_ext}.dis{filename_ext}"
+        )
 
         filenames = {
             "input": input_image_path,
             "contour": contour_image_path,
             "mask": mask_path,
             "extracted": extracted_image_path,
+            "rembg": rembg_image_path,
+            "dis": dis_image_path,
         }
         return filenames
 
@@ -80,6 +87,13 @@ class Main:
 
                 logger.info(f"Processing image: {filenames['input']}")
 
+                # Remove background with rembg
+                # self.people_detector.rembg_image(filenames["input"], filenames["rembg"])
+
+                # Remove background with Dichotomous Image Segmentation
+                # self.people_detector.dis_image(filenames["input"], filenames["dis"])
+
+                # Get segmentation masks
                 masks = self.people_detector.get_masks(filenames["input"])
                 if len(masks) > 0:
                     count_success += 1

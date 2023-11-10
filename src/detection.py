@@ -6,7 +6,8 @@ from segment_anything import sam_model_registry, SamPredictor
 from src.utils import Timer
 import logging
 from matplotlib import pyplot as plt
-
+from rembg import remove, new_session
+from dis_inference import inference
 
 DEVICE = "cpu"
 YOLOV8_MODEL_PATH = "yolov8s.pt"
@@ -29,7 +30,10 @@ class PersonDetector:
 
         self.sam_model = sam_model_registry["vit_h"](checkpoint=sam_model_path)
         self.sam_model.to(device=DEVICE)
+        self.sam_segmenter = SamPredictor(self.sam_model)
         self.logger = logger
+        u2net_model_name = "u2net_human_seg"
+        self.rembg_session = new_session(u2net_model_name)
 
     def display_masks(self, masks):
         """
@@ -71,12 +75,12 @@ class PersonDetector:
         bbox_final = torch.tensor(bbox, device=DEVICE)
         return bbox_final
 
-    def get_segmentation_masks(self, predictor, image, boxes):
+    def get_segmentation_masks(self, image, boxes):
         with torch.no_grad():
-            transformed_boxes = predictor.transform.apply_boxes_torch(
+            transformed_boxes = self.sam_segmenter.transform.apply_boxes_torch(
                 boxes.clone().detach(), image.shape[:2]
             )
-            masks, _, _ = predictor.predict_torch(
+            masks, _, _ = self.sam_segmenter.predict_torch(
                 point_coords=None,
                 point_labels=None,
                 boxes=transformed_boxes,
@@ -99,7 +103,7 @@ class PersonDetector:
 
         return contour_list
 
-    def get_masks(self, image_path) -> list:
+    def get_masks(self, image_path) -> torch.Tensor:
         timer = Timer(self.logger)
         # Read and process the image
         image = cv2.imread(image_path)
@@ -118,10 +122,25 @@ class PersonDetector:
             return []
 
         # Get segmentation masks
-        predictor = SamPredictor(self.sam_model)
-        predictor.set_image(image)
+        self.sam_segmenter.set_image(image)
+        timer.checkpoint("Set image")
 
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        masks = self.get_segmentation_masks(predictor, image_rgb, boxes)
+        masks = self.get_segmentation_masks(image_rgb, boxes)
         timer.checkpoint("Get segmentation masks")
         return masks
+
+    def rembg_image(self, input_image_path, output_image_path):
+        # Remove background
+        with open(input_image_path, "rb") as input_file:
+            f = input_file.read()
+
+        result = remove(f, session=self.rembg_session)
+
+        # Save image
+        with open(output_image_path, "wb") as output_file:
+            output_file.write(result)
+
+    def dis_image(self, input_image_path, output_image_path):
+        image = inference(input_image_path)
+        cv2.imwrite(output_image_path, image)
